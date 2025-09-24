@@ -67,7 +67,7 @@ def listar_eventos():
     print("\n📌 Lista de eventos:")
     for evento in TipoEvento.select():
         print(f"- {evento.id}: {evento.nombre}")
-        print()
+        print("\n")
 
 def agregar_participante(carnet: str, nombre: str, celular: str, fecha_evento: date, id_evento: int):
     """
@@ -95,7 +95,7 @@ def listar_participantes():
     print("\n📌 Lista de participantes:")
     for p in Participante.select():
         print(f"- {p.carnet} | {p.nombre} | {p.celular} | {p.diadeevento} | Evento: {p.tipo_evento.nombre}")
-        print()
+        print("\n")
 
 # -----------------------------------------------------------
 # Ejemplo de uso (solo se ejecuta si corres este archivo)
