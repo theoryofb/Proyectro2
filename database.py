@@ -1,121 +1,78 @@
 from peewee import *
-from datetime import date
+from datetime import date, time
 
-# -----------------------------------------------------------
-# Configuración de la base de datos SQLite
-# -----------------------------------------------------------
-db = SqliteDatabase('mi_base_datos.db')
+# Conexión a SQLite
+db = SqliteDatabase("mi_base_datos.db")
 
-# -----------------------------------------------------------
-# Definición de modelos (tablas)
-# -----------------------------------------------------------
-class TipoEvento(Model):
+class Evento(Model):
     """
-    Tabla de tipos de eventos (ej: Conferencia, Taller, Seminario).
+    Representa un evento registrado.
     """
-    nombre = CharField(unique=True)  # No se repite el nombre del evento
+    tipo = CharField()  # cumpleaños, boda, etc.
+    nombre_cliente = CharField()
+    monto_garantia = FloatField()
+    monto_total = FloatField()
+    dia = DateField()
+    hora_fin = TimeField()
+    decoracion = BooleanField(default=False)
+    num_invitados = IntegerField(null=True)  # opcional
+    estado_pago = CharField(default="Pendiente")  # Pendiente, Parcial, Completo
+    observaciones = TextField(null=True)
 
     class Meta:
         database = db
 
 
-class Participante(Model):
-    """
-    Tabla de participantes asociados a un tipo de evento.
-    """
-    carnet = CharField(unique=True)  # Identificación única
-    nombre = CharField()
-    celular = CharField()
-    diadeevento = DateField()
-    tipo_evento = ForeignKeyField(TipoEvento, backref='participantes')
-
-    class Meta:
-        database = db
-
-
-# -----------------------------------------------------------
-# Funciones para trabajar con la base de datos
-# -----------------------------------------------------------
 def inicializar_db():
-    """
-    Crea las tablas si no existen.
-    """
     db.connect()
-    db.create_tables([TipoEvento, Participante], safe=True)
+    db.create_tables([Evento], safe=True)
     print("📌 Base de datos inicializada.")
 
 
-def agregar_evento(nombre_evento: str):
-    """
-    Agrega un nuevo tipo de evento.
-    """
-    try:
-        evento, creado = TipoEvento.get_or_create(nombre=nombre_evento)
-        if creado:
-            print(f"✅ Evento '{nombre_evento}' creado.")
-        else:
-            print(f"ℹ️ El evento '{nombre_evento}' ya existe.")
-        return evento
-    except IntegrityError:
-        print(f"⚠️ Error: no se pudo crear el evento '{nombre_evento}'.")
+# ---------------- FUNCIONES ---------------- #
+def agregar_evento(tipo, nombre_cliente, monto_garantia, monto_total, dia, hora_fin, decoracion,
+                   num_invitados=None, estado_pago="Pendiente", observaciones=None):
+    evento = Evento.create(
+        tipo=tipo,
+        nombre_cliente=nombre_cliente,
+        monto_garantia=monto_garantia,
+        monto_total=monto_total,
+        dia=dia,
+        hora_fin=hora_fin,
+        decoracion=decoracion,
+        num_invitados=num_invitados,
+        estado_pago=estado_pago,
+        observaciones=observaciones
+    )
+    print(f"✅ Evento '{tipo}' para {nombre_cliente} agregado.")
+    return evento
 
 
 def listar_eventos():
-    """
-    Muestra todos los tipos de eventos.
-    """
     print("\n📌 Lista de eventos:")
-    for evento in TipoEvento.select():
-        print(f"- {evento.id}: {evento.nombre}")
-        print("\n")
+    for e in Evento.select():
+        deco = "Sí" if e.decoracion else "No"
+        print(f"- ID {e.id}: {e.tipo} | Cliente: {e.nombre_cliente} | "
+              f"Garantía: {e.monto_garantia} | Total: {e.monto_total} | "
+              f"Día: {e.dia} | Hora fin: {e.hora_fin} | Decoración: {deco}")
+    print()
 
-def agregar_participante(carnet: str, nombre: str, celular: str, fecha_evento: date, id_evento: int):
-    """
-    Agrega un participante asociado a un evento.
-    """
+
+def modificar_evento(id_evento, **kwargs):
     try:
-        evento = TipoEvento.get_by_id(id_evento)
-        participante = Participante.create(
-            carnet=carnet,
-            nombre=nombre,
-            celular=celular,
-            diadeevento=fecha_evento,
-            tipo_evento=evento
-        )
-        print(f"✅ Participante '{nombre}' agregado al evento '{evento.nombre}'.")
-        return participante
-    except TipoEvento.DoesNotExist:
-        print("⚠️ Error: El evento con ese ID no existe.")
+        evento = Evento.get_by_id(id_evento)
+        for campo, valor in kwargs.items():
+            setattr(evento, campo, valor)
+        evento.save()
+        print(f"✏️ Evento {id_evento} modificado.")
+    except Evento.DoesNotExist:
+        print("⚠️ El evento no existe.")
 
 
-def listar_participantes():
-    """
-    Muestra todos los participantes con sus datos y evento.
-    """
-    print("\n📌 Lista de participantes:")
-    for p in Participante.select():
-        print(f"- {p.carnet} | {p.nombre} | {p.celular} | {p.diadeevento} | Evento: {p.tipo_evento.nombre}")
-        print("\n")
-
-# -----------------------------------------------------------
-# Ejemplo de uso (solo se ejecuta si corres este archivo)
-# -----------------------------------------------------------
-if __name__ == "__main__":
-    inicializar_db()
-
-    # Crear algunos eventos
-    agregar_evento("Conferencia")
-    agregar_evento("Taller")
-
-    # Listar eventos
-    listar_eventos()
-
-    # Agregar participantes
-    agregar_participante("123456", "Gian Villca", "777888999", date(2025, 9, 10), 1)
-    agregar_participante("654321", "Ana Pérez", "700123456", date(2025, 9, 11), 2)
-
-    # Listar participantes
-    listar_participantes()
-
-    # Cerrar conexión
-    db.close()
+def eliminar_evento(id_evento):
+    try:
+        evento = Evento.get_by_id(id_evento)
+        evento.delete_instance()
+        print(f"❌ Evento {id_evento} eliminado.")
+    except Evento.DoesNotExist:
+        print("⚠️ El evento no existe.")
