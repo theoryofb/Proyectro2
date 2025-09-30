@@ -21,7 +21,7 @@ def menu():
         elif opcion == "4":
             listar_eventos_tui()
         elif opcion == "5":
-            print("👋 Saliendo del sistema...")
+            print("👋 ¡Hasta luego! Saliendo del sistema...")
             break
         else:
             print("⚠️ Opción inválida, intenta de nuevo.")
