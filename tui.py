@@ -1,16 +1,34 @@
+import os
 from database import agregar_evento, listar_eventos, modificar_evento, eliminar_evento
 from datetime import datetime
+from tabulate import tabulate
+from colorama import init, Fore, Style
 
+# Inicializar colorama
+init(autoreset=True)
+
+# ---------------- FUNCIONES AUXILIARES ---------------- #
+def clear_screen():
+    os.system("cls" if os.name == "nt" else "clear")
+
+def pause():
+    input(Fore.MAGENTA + "\nPresiona Enter para continuar..." + Style.RESET_ALL)
+
+# ---------------- MENÚ PRINCIPAL ---------------- #
 def menu():
     while True:
-        print("\n🎉 MENÚ PRINCIPAL - GESTIÓN DE EVENTOS 🎉")
-        print("1️⃣  Agregar evento")
+        clear_screen()
+        print(Fore.CYAN + Style.BRIGHT + "═" * 100)
+        print("🎉  GESTIÓN DE EVENTOS  🎉".center(100))
+        print("═" * 100 + Style.RESET_ALL)
+
+        print(Fore.YELLOW + "1️⃣  Agregar evento")
         print("2️⃣  Modificar evento")
         print("3️⃣  Eliminar evento")
         print("4️⃣  Listar eventos")
-        print("5️⃣  Salir")
+        print("5️⃣  Salir" + Style.RESET_ALL)
 
-        opcion = input("👉 Selecciona una opción: ")
+        opcion = input(Fore.GREEN + "\n👉 Selecciona una opción: " + Style.RESET_ALL)
 
         if opcion == "1":
             agregar_evento_tui()
@@ -21,14 +39,16 @@ def menu():
         elif opcion == "4":
             listar_eventos_tui()
         elif opcion == "5":
-            print("👋 ¡Hasta luego! Saliendo del sistema...")
+            print(Fore.MAGENTA + "👋 Saliendo del sistema...")
             break
         else:
-            print("⚠️ Opción inválida, intenta de nuevo.")
+            print(Fore.RED + "⚠️ Opción inválida, intenta de nuevo.")
+            pause()
 
 # ---------------- FUNCIONES TUI ---------------- #
 def agregar_evento_tui():
-    print("\n➕ Registrar un nuevo evento:")
+    clear_screen()
+    print(Fore.BLUE + Style.BRIGHT + "➕  REGISTRAR NUEVO EVENTO".center(100) + Style.RESET_ALL)
     tipo = input("🎂 Tipo de evento: ")
     nombre = input("👤 Nombre del cliente: ")
     carnet = input("🪪 Carnet de identidad: ")
@@ -40,20 +60,30 @@ def agregar_evento_tui():
     decoracion = input("🎀 ¿Requiere decoración? (s/n): ").lower() == "s"
 
     agregar_evento(tipo, nombre, carnet, direccion, monto_garantia, monto_total, dia, hora_fin, decoracion)
-    print("✅ Evento agregado con éxito.")
+    print(Fore.GREEN + "\n✅ Evento agregado con éxito.")
+    pause()
 
 def listar_eventos_tui():
-    print("\n📋 Lista de eventos:")
-    for e in listar_eventos():
-        print(f"🆔 {e.id} | 🎂 {e.tipo} | 👤 {e.nombre} | 🪪 {e.carnet} | "
-              f"🏠 {e.direccion_domicilio} | 💰 Garantía: {e.monto_garantia} | 💵 Total: {e.monto_total} | "
-              f"📅 {e.dia} | ⏰ {e.hora_fin} | 🎀 Decoración: {'Sí' if e.decoracion else 'No'}")
-    print()
+    clear_screen()
+    eventos = listar_eventos()
+    print(Fore.CYAN + Style.BRIGHT + "📋  LISTA DE EVENTOS".center(100) + Style.RESET_ALL)
+    if not eventos:
+        print(Fore.YELLOW + "\nNo hay eventos registrados.\n")
+        pause()
+        return
+
+    tabla = [[e.id, e.tipo, e.nombre, e.carnet, e.direccion_domicilio,
+              e.monto_garantia, e.monto_total, e.dia, e.hora_fin,
+              "Sí" if e.decoracion else "No"] for e in eventos]
+
+    print(tabulate(tabla, headers=["ID","Tipo","Nombre","Carnet","Dirección","Garantía","Total","Fecha","Hora fin","Decoración"], 
+                   tablefmt="fancy_grid", stralign="center", numalign="center"))
+    pause()
 
 def modificar_evento_tui():
     listar_eventos_tui()
     try:
-        evento_id = int(input("✏️ ID del evento a modificar: "))
+        evento_id = int(input(Fore.GREEN + "\n✏️ ID del evento a modificar: " + Style.RESET_ALL))
         print("Deja en blanco si no quieres cambiar un campo.")
         tipo = input("🎂 Nuevo tipo: ")
         nombre = input("👤 Nuevo nombre: ")
@@ -77,22 +107,24 @@ def modificar_evento_tui():
         if decoracion.lower() in ["s", "n"]: kwargs["decoracion"] = decoracion.lower() == "s"
 
         if modificar_evento(evento_id, **kwargs):
-            print("✅ Evento modificado con éxito.")
+            print(Fore.GREEN + "\n✅ Evento modificado con éxito.")
         else:
-            print("❌ No se encontró el evento.")
+            print(Fore.RED + "\n❌ No se encontró el evento.")
     except ValueError:
-        print("⚠️ ID inválido.")
+        print(Fore.RED + "\n⚠️ ID inválido.")
+    pause()
 
 def eliminar_evento_tui():
     listar_eventos_tui()
     try:
-        evento_id = int(input("🗑️ ID del evento a eliminar: "))
+        evento_id = int(input(Fore.GREEN + "\n🗑️ ID del evento a eliminar: " + Style.RESET_ALL))
         if eliminar_evento(evento_id):
-            print("✅ Evento eliminado con éxito.")
+            print(Fore.GREEN + "\n✅ Evento eliminado con éxito.")
         else:
-            print("❌ No se encontró el evento.")
+            print(Fore.RED + "\n❌ No se encontró el evento.")
     except ValueError:
-        print("⚠️ ID inválido.")
+        print(Fore.RED + "\n⚠️ ID inválido.")
+    pause()
 
 # ---------------- EJECUCIÓN ---------------- #
 if __name__ == "__main__":
