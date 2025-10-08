@@ -39,8 +39,18 @@ def agregar_evento(tipo, nombre, carnet, direccion, monto_garantia, monto_total,
     )
 
 def listar_eventos():
-    """Devuelve todos los eventos como iterable (para GUI y TUI)"""
-    return Evento.select()
+    # Ordena por fecha (columna 'dia')
+    eventos = Evento.select().order_by(Evento.dia)
+
+    # Detectar fechas duplicadas (conflictos)
+    fechas = [e.dia for e in eventos]
+    duplicadas = [f for f, c in Counter(fechas).items() if c > 1]
+
+    # Marcar conflictos en los objetos de evento
+    for e in eventos:
+        e.conflicto = e.dia in duplicadas
+
+    return eventos
 
 def modificar_evento(evento_id, **kwargs):
     """Modifica un evento según su ID"""
