@@ -68,19 +68,35 @@ def listar_eventos_tui():
     clear_screen()
     eventos = listar_eventos()
     print(Fore.CYAN + Style.BRIGHT + "LISTA DE EVENTOS".center(80) + Style.RESET_ALL)
+
     if not eventos:
         print(Fore.YELLOW + "\nNo hay eventos registrados.\n")
         pause()
         return
 
-    tabla = [[e.id, e.tipo, e.nombre, e.carnet, e.direccion_domicilio,
-              e.monto_garantia, e.monto_total, e.dia, e.hora_fin,
-              "Sí" if e.decoracion else "No"] for e in eventos]
+    tabla = []
+    for e in eventos:
+        fila = [
+            e.id,
+            e.tipo,
+            e.nombre,
+            e.carnet,
+            e.direccion_domicilio,
+            e.monto_garantia,
+            e.monto_total,
+            e.dia,
+            e.hora_fin,
+            "Sí" if e.decoracion else "No"
+        ]
+        if getattr(e, "conflicto", False):
+            fila = [Fore.RED + str(x) + Style.RESET_ALL for x in fila]
+        tabla.append(fila)
 
-    print(tabulate(tabla, headers=["ID","Tipo","Nombre","Carnet","Dirección","Garantía","Total","Fecha","Hora fin","Decoración"], 
+    print(tabulate(tabla, headers=["ID", "Tipo", "Nombre", "Carnet", "Dirección", 
+                                   "Garantía", "Total", "Fecha", "Hora fin", "Decoración"],
                    tablefmt="fancy_grid", stralign="center", numalign="center"))
+    print(Fore.RED + "\n⚠️  En rojo: eventos con conflicto de fecha.\n" + Style.RESET_ALL)
     pause()
-
 def modificar_evento_tui():
     listar_eventos_tui()
     try:
