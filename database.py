@@ -1,5 +1,7 @@
 from peewee import *
 from datetime import datetime
+from collections import Counter
+
 
 # ---------------- BASE DE DATOS ---------------- #
 db = SqliteDatabase("eventos.db")
