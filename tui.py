@@ -65,15 +65,17 @@ def agregar_evento_tui():
     pause()
 
 def marcar_conflictos(eventos):
+    """
+    Marca los eventos que comparten la misma fecha con un atributo 'conflicto'.
+    """
     fechas = {}
     for e in eventos:
-        fecha = e.dia  # suponiendo que 'dia' es datetime.date o str YYYY-MM-DD
+        fecha = e.dia  # se asume que es datetime.date
         if fecha in fechas:
             fechas[fecha].append(e)
         else:
             fechas[fecha] = [e]
 
-    # Marcar conflicto
     for lista in fechas.values():
         if len(lista) > 1:
             for e in lista:
@@ -85,7 +87,7 @@ def marcar_conflictos(eventos):
 
 def listar_eventos_tui():
     clear_screen()
-    eventos = listar_eventos()
+    eventos = list(listar_eventos())  # <-- convertir a lista para poder ordenar
 
     # Ordenar por fecha
     eventos.sort(key=lambda x: x.dia)
@@ -125,6 +127,7 @@ def listar_eventos_tui():
                    numalign="center"))
     print(Fore.RED + "\n⚠️  En rojo: eventos con conflicto de fecha.\n" + Style.RESET_ALL)
     pause()
+
 
 def modificar_evento_tui():
     listar_eventos_tui()
