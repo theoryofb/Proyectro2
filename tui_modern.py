@@ -46,14 +46,14 @@ class TUIApp(App):
     # ---------------- EVENT HANDLER ---------------- #
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
-       elif button_id == "registrar":
-    self.create_task(self.registrar_evento())
-elif button_id == "listar":
-    self.create_task(self.listar_eventos())
-elif button_id == "modificar":
-    self.create_task(self.modificar_evento())
-elif button_id == "eliminar":
-    self.create_task(self.eliminar_evento())
+       if button_id == "registrar":
+            self.create_task(self.registrar_evento())
+        elif button_id == "listar":
+            self.create_task(self.listar_eventos())
+        elif button_id == "modificar":
+            self.create_task(self.modificar_evento())
+        elif button_id == "eliminar":
+            self.create_task(self.eliminar_evento())
         elif button_id == "salir":
             self.exit()
 
