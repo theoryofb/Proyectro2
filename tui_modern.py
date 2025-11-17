@@ -1,152 +1,192 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Button, Header, Footer, Static, Input, DataTable, Checkbox, Select
-from textual.containers import Horizontal, Vertical
-from database import agregar_evento, listar_eventos, modificar_evento, eliminar_evento
+from textual.widgets import (
+    Header, Footer, Button, Static, Input, Checkbox, Select, DataTable
+)
+from textual.containers import Vertical, Horizontal
+from textual.screen import Screen
 from datetime import datetime
+from database import agregar_evento, listar_eventos, modificar_evento, eliminar_evento
 
-TIPOS_EVENTO = [
-    ("cumpleanos", "Cumpleaños"),
-    ("boda", "Boda"),
-    ("graduacion", "Graduación"),
-    ("otro", "Otro")
-]
+# -------------------------------------------------------
+# 🔷 FORMULARIO DE REGISTRO / MODIFICACIÓN
+# -------------------------------------------------------
+class FormScreen(Screen):
 
-class TUIApp(App):
-    CSS = """
-    Screen {
-        align: center middle;
-    }
-    #title {
-        height: 5;
-        content-align: center middle;
-    }
-    Button {
-        width: 20;
-        margin: 1;
-        border: round white;
-        background: darkgreen;
-        color: white;
-    }
-    Button:focus {
-        background: green;
-        color: black;
-    }
-    """
+    def __init__(self, editar=False, evento=None):
+        super().__init__()
+        self.editar = editar
+        self.evento = evento
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield Static("🎉 BIENVENIDO AL SISTEMA DE EVENTOS 🎉", id="title")
+        yield Static(
+            "✍ REGISTRAR EVENTO" if not self.editar else "✏ MODIFICAR EVENTO",
+            id="title"
+        )
 
-        with Horizontal():
-            yield Button("Registrar evento", id="registrar")
-            yield Button("Listar eventos", id="listar")
-            yield Button("Modificar evento", id="modificar")
-            yield Button("Eliminar evento", id="eliminar")
-            yield Button("Salir", id="salir")
+        yield Input(placeholder="Nombre del cliente", id="nombre")
+        yield Input(placeholder="Carnet", id="carnet")
+        yield Input(placeholder="Dirección", id="direccion")
+
+        yield Select(
+            options=[
+                ("cumpleanos", "Cumpleaños"),
+                ("boda", "Boda"),
+                ("graduacion", "Graduación"),
+                ("infantil", "Fiesta infantil"),
+                ("baby", "Baby Shower"),
+                ("corporativo", "Corporativo"),
+                ("otro", "Otro")
+            ],
+            id="tipo"
+        )
+
+        yield Input(placeholder="Monto garantía", id="garantia")
+        yield Input(placeholder="Monto total", id="total")
+        yield Input(placeholder="Fecha YYYY-MM-DD", id="dia")
+        yield Input(placeholder="Hora fin HH:MM", id="hora")
+        yield Checkbox("¿Requiere decoración?", id="decoracion")
+
+        yield Horizontal(
+            Button("💾 Guardar", id="guardar", variant="success"),
+            Button("⬅ Volver", id="volver", variant="error"),
+            id="botones"
+        )
 
         yield Footer()
 
-    # ---------------- EVENT HANDLER ---------------- #
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
-        button_id = event.button.id
+    def on_mount(self):
+        if self.editar and self.evento:
+            self.query_one("#nombre").value = self.evento.nombre
+            self.query_one("#carnet").value = self.evento.carnet
+            self.query_one("#direccion").value = self.evento.direccion_domicilio
+            self.query_one("#tipo").value = self.evento.tipo
+            self.query_one("#garantia").value = str(self.evento.monto_garantia)
+            self.query_one("#total").value = str(self.evento.monto_total)
+            self.query_one("#dia").value = str(self.evento.dia)
+            self.query_one("#hora").value = str(self.evento.hora_fin)
+            self.query_one("#decoracion").value = self.evento.decoracion
 
-        if button_id == "registrar":
-            await self.show_registrar()
-        elif button_id == "listar":
-            await self.show_listar()
-        elif button_id == "modificar":
-            await self.show_modificar()
-        elif button_id == "eliminar":
-            await self.show_eliminar()
-        elif button_id == "salir":
-            self.exit()
-
-    # ---------------- FUNCIONES ---------------- #
-    async def show_registrar(self):
-        self.clear_screen_widgets()
-        self.registrar_container = Vertical()
-        self.mount(self.registrar_container)
-
-        self.tipo_select = Select(TIPOS_EVENTO, prompt="Tipo de evento")
-        self.nombre_input = Input(placeholder="Nombre del cliente")
-        self.carnet_input = Input(placeholder="Carnet de identidad")
-        self.direccion_input = Input(placeholder="Dirección de domicilio")
-        self.garantia_input = Input(placeholder="Monto de garantía")
-        self.total_input = Input(placeholder="Monto total")
-        self.fecha_input = Input(placeholder="Fecha (YYYY-MM-DD)")
-        self.hora_input = Input(placeholder="Hora fin (HH:MM)")
-        self.decoracion_checkbox = Checkbox(label="Requiere decoración")
-
-        # Botón para guardar
-        self.guardar_btn = Button("Guardar", id="guardar_registro")
-
-        for widget in [
-            self.tipo_select, self.nombre_input, self.carnet_input,
-            self.direccion_input, self.garantia_input, self.total_input,
-            self.fecha_input, self.hora_input, self.decoracion_checkbox,
-            self.guardar_btn
-        ]:
-            self.registrar_container.mount(widget)
-
-        self.guardar_btn.on_click(self.on_guardar_registro)
-
-    async def on_guardar_registro(self, event):
-        tipo = self.tipo_select.value
-        nombre = self.nombre_input.value
-        carnet = self.carnet_input.value
-        direccion = self.direccion_input.value
-        monto_garantia = float(self.garantia_input.value)
-        monto_total = float(self.total_input.value)
-        dia = self.fecha_input.value
-        hora_fin = self.hora_input.value
-        decoracion = self.decoracion_checkbox.value
-
-        agregar_evento(tipo, nombre, carnet, direccion, monto_garantia, monto_total, dia, hora_fin, decoracion)
-        await self.message_box("Evento agregado con éxito.")
-
-    async def show_listar(self):
-        self.clear_screen_widgets()
-        eventos = list(listar_eventos())
-        if not eventos:
-            await self.message_box("No hay eventos registrados.")
+    def on_button_pressed(self, event: Button.Pressed):
+        if event.button.id == "volver":
+            self.app.pop_screen()
             return
 
+        datos = {
+            "nombre": self.query_one("#nombre").value,
+            "carnet": self.query_one("#carnet").value,
+            "direccion_domicilio": self.query_one("#direccion").value,
+            "tipo": self.query_one("#tipo").value,
+            "monto_garantia": float(self.query_one("#garantia").value),
+            "monto_total": float(self.query_one("#total").value),
+            "dia": datetime.strptime(self.query_one("#dia").value, "%Y-%m-%d").date(),
+            "hora_fin": datetime.strptime(self.query_one("#hora").value, "%H:%M").time(),
+            "decoracion": self.query_one("#decoracion").value
+        }
+
+        if self.editar:
+            modificar_evento(self.evento.id, **datos)
+        else:
+            agregar_evento(**datos)
+
+        self.app.pop_screen()
+
+
+# -------------------------------------------------------
+# 🔷 LISTA DE EVENTOS
+# -------------------------------------------------------
+class ListaEventos(Screen):
+
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=True)
+        yield Static("📋 LISTA DE EVENTOS", id="title")
+        self.tabla = DataTable(id="tabla")
+        yield self.tabla
+        yield Footer()
+
+    def on_mount(self):
+        self.tabla.add_columns(
+            "ID", "Tipo", "Nombre", "Carnet", "Fecha", "Hora", "Decoración"
+        )
+
+        eventos = list(listar_eventos())
         eventos.sort(key=lambda e: e.dia)
+
         fechas = {}
         for e in eventos:
             fechas.setdefault(e.dia, []).append(e)
 
-        self.tabla = DataTable()
-        self.tabla.add_columns("ID", "Tipo", "Nombre", "Carnet", "Fecha", "Hora", "Decoración")
         for e in eventos:
-            row_index = self.tabla.add_row(
+            conflicto = len(fechas[e.dia]) > 1
+            # En versiones modernas de textual, DataTable no acepta style en add_row
+            self.tabla.add_row(
                 str(e.id), e.tipo, e.nombre, e.carnet,
                 str(e.dia), str(e.hora_fin),
                 "Sí" if e.decoracion else "No"
             )
-            if len(fechas[e.dia]) > 1:
-                for col in range(len(self.tabla.columns)):
-                    self.tabla.set_cell_style(row_index, col, "bold red")
+            if conflicto:
+                fila_index = len(self.tabla.rows) - 1
+                for col_index in range(len(self.tabla.columns)):
+                    self.tabla.get_row(fila_index).cells[col_index].style = "bold red"
 
-        self.mount(self.tabla)
-        await self.message_box("Presiona Enter para volver al menú.")
+    def key_e(self):
+        fila = self.tabla.cursor_row
+        if fila is None:
+            return
+        event_id = int(self.tabla.rows[fila].cells[0].value)
+        evento = next(e for e in listar_eventos() if e.id == event_id)
+        self.app.push_screen(FormScreen(editar=True, evento=evento))
 
-    async def show_modificar(self):
-        await self.message_box("Modificar evento aún usa consola (tui.py) por simplicidad.")
+    def key_d(self):
+        fila = self.tabla.cursor_row
+        if fila is None:
+            return
+        event_id = int(self.tabla.rows[fila].cells[0].value)
+        eliminar_evento(event_id)
+        self.app.push_screen(ListaEventos())
 
-    async def show_eliminar(self):
-        await self.message_box("Eliminar evento aún usa consola (tui.py) por simplicidad.")
 
-    # ---------------- HELPERS ---------------- #
-    def clear_screen_widgets(self):
-        for child in self.query(Static) + self.query(Vertical) + self.query(DataTable) + self.query(Checkbox) + self.query(Input) + self.query(Select) + self.query(Button):
-            child.remove()
+# -------------------------------------------------------
+# 🔷 MENÚ PRINCIPAL
+# -------------------------------------------------------
+class ModernApp(App):
 
-    async def message_box(self, mensaje):
-        print("\n" + mensaje)
-        input("\nPresiona Enter para continuar...")
+    CSS = """
+    #title {
+        padding: 1;
+        text-align: center;
+        color: yellow;
+    }
+    """
 
+    BINDINGS = [
+        ("q", "quit", "Salir"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=True)
+        yield Static("🌟 BIENVENIDO AL SISTEMA DE EVENTOS 🌟", id="title")
+
+        yield Vertical(
+            Button("➕ Registrar evento", id="add", variant="success"),
+            Button("📋 Ver eventos", id="list", variant="primary"),
+            Button("❌ Salir", id="quitbtn", variant="error"),
+            id="menu"
+        )
+        yield Footer()
+
+    def on_button_pressed(self, event: Button.Pressed):
+        if event.button.id == "add":
+            self.push_screen(FormScreen())
+        elif event.button.id == "list":
+            self.push_screen(ListaEventos())
+        elif event.button.id == "quitbtn":
+            self.exit()
+
+
+# -------------------------------------------------------
+# 🚀 EJECUCIÓN
+# -------------------------------------------------------
 if __name__ == "__main__":
-    app = TUIApp()
-    app.run()
+    ModernApp().run()
 
