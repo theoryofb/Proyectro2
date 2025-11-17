@@ -26,7 +26,7 @@ class FormScreen(Screen):
 
         yield Input(placeholder="Nombre del cliente", id="nombre")
         yield Input(placeholder="Carnet", id="carnet")
-        # Campo de domicilio eliminado
+
         yield Select(
             options=[
                 ("cumpleanos", "Cumpleaños"),
@@ -78,7 +78,8 @@ class FormScreen(Screen):
             "monto_total": float(self.query_one("#total").value),
             "dia": datetime.strptime(self.query_one("#dia").value, "%Y-%m-%d").date(),
             "hora_fin": datetime.strptime(self.query_one("#hora").value, "%H:%M").time(),
-            "decoracion": self.query_one("#decoracion").value
+            "decoracion": self.query_one("#decoracion").value,
+            "direccion": ""  # Valor vacío para cumplir con la función en database.py
         }
 
         if self.editar:
@@ -129,7 +130,7 @@ class ListaEventos(Screen):
         fila = self.tabla.cursor_row
         if fila is None:
             return
-        event_id = int(self.tabla.get_row(fila).get_cell_value(0))
+        event_id = int(self.tabla.rows[fila].cells[0].value)
         evento = next(e for e in listar_eventos() if e.id == event_id)
         self.app.push_screen(FormScreen(editar=True, evento=evento))
 
@@ -137,9 +138,9 @@ class ListaEventos(Screen):
         fila = self.tabla.cursor_row
         if fila is None:
             return
-        event_id = int(self.tabla.get_row(fila).get_cell_value(0))
+        event_id = int(self.tabla.rows[fila].cells[0].value)
         eliminar_evento(event_id)
-        self.tabla.remove_row(fila)
+        self.app.push_screen(ListaEventos())
 
 
 # -------------------------------------------------------
@@ -166,6 +167,8 @@ class ModernApp(App):
         yield Vertical(
             Button("➕ Registrar evento", id="add", variant="success"),
             Button("📋 Ver eventos", id="list", variant="primary"),
+            Button("✏ Modificar evento", id="mod", variant="primary"),
+            Button("❌ Eliminar evento", id="del", variant="error"),
             Button("🚪 Salir", id="quitbtn", variant="error"),
             id="menu"
         )
@@ -176,6 +179,10 @@ class ModernApp(App):
             self.push_screen(FormScreen())
         elif event.button.id == "list":
             self.push_screen(ListaEventos())
+        elif event.button.id == "mod":
+            self.push_screen(ListaEventos())  # Puedes usar key_e dentro de ListaEventos
+        elif event.button.id == "del":
+            self.push_screen(ListaEventos())  # Puedes usar key_d dentro de ListaEventos
         elif event.button.id == "quitbtn":
             self.exit()
 
