@@ -61,8 +61,8 @@ class FormScreen(Screen):
             self.query_one("#tipo").value = self.evento.tipo
             self.query_one("#garantia").value = str(self.evento.monto_garantia)
             self.query_one("#total").value = str(self.evento.monto_total)
-            self.query_one("#dia").value = str(self.evento.dia)
-            self.query_one("#hora").value = str(self.evento.hora_fin)
+            self.query_one("#dia").value = str(self.evento.dia)  # como cadena YYYY-MM-DD
+            self.query_one("#hora").value = str(self.evento.hora_fin)  # como cadena HH:MM
             self.query_one("#decoracion").value = self.evento.decoracion
 
     def on_button_pressed(self, event: Button.Pressed):
@@ -76,10 +76,10 @@ class FormScreen(Screen):
             "tipo": self.query_one("#tipo").value,
             "monto_garantia": float(self.query_one("#garantia").value),
             "monto_total": float(self.query_one("#total").value),
-            "dia": datetime.strptime(self.query_one("#dia").value, "%Y-%m-%d").date(),
-            "hora_fin": datetime.strptime(self.query_one("#hora").value, "%H:%M").time(),
+            "dia": self.query_one("#dia").value,       # enviar como cadena
+            "hora_fin": self.query_one("#hora").value, # enviar como cadena
             "decoracion": self.query_one("#decoracion").value,
-            "direccion": ""  # Valor vacío para cumplir con la función en database.py
+            "direccion": ""  # para cumplir con la función en database.py
         }
 
         if self.editar:
@@ -180,9 +180,9 @@ class ModernApp(App):
         elif event.button.id == "list":
             self.push_screen(ListaEventos())
         elif event.button.id == "mod":
-            self.push_screen(ListaEventos())  # Puedes usar key_e dentro de ListaEventos
+            self.push_screen(ListaEventos())  # seleccionar fila y usar key_e
         elif event.button.id == "del":
-            self.push_screen(ListaEventos())  # Puedes usar key_d dentro de ListaEventos
+            self.push_screen(ListaEventos())  # seleccionar fila y usar key_d
         elif event.button.id == "quitbtn":
             self.exit()
 
