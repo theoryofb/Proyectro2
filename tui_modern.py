@@ -1,6 +1,6 @@
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, Button, Static
-from textual.containers import Center
+from textual.containers import Vertical
 from textual.message import Message
 from rich.panel import Panel
 
@@ -12,7 +12,7 @@ class MenuButton(Button):
 
 class EventoApp(App):
 
-    CSS_PATH = None  # No necesitamos CSS externo
+    CSS_PATH = None
 
     # Clase para manejar acciones de menú
     class MenuAction(Message):
@@ -21,23 +21,20 @@ class EventoApp(App):
             self.action = action
 
     def compose(self) -> ComposeResult:
-        # Header y mensaje de bienvenida
         yield Header(show_clock=True)
-        yield Center(
-            Static(Panel("[bold cyan]📅 SISTEMA DE EVENTOS\nSelecciona una opción", expand=False)),
-        )
+        yield Static(Panel("[bold cyan]📅 SISTEMA DE EVENTOS\nSelecciona una opción", expand=False))
 
-        # Botones del menú
-        botones = [
-            ("➕ Registrar evento", "registrar"),
-            ("📋 Listar eventos", "listar"),
-            ("✏️  Editar evento", "editar"),
-            ("❌ Eliminar evento", "eliminar"),
-            ("🚪 Salir", "salir"),
-        ]
-
-        for texto, accion in botones:
-            yield Center(MenuButton(texto, accion))
+        # Usamos Vertical para que los botones se comporten como lista
+        with Vertical():
+            botones = [
+                ("➕ Registrar evento", "registrar"),
+                ("📋 Listar eventos", "listar"),
+                ("✏️  Editar evento", "editar"),
+                ("❌ Eliminar evento", "eliminar"),
+                ("🚪 Salir", "salir"),
+            ]
+            for texto, accion in botones:
+                yield MenuButton(texto, accion)
 
         yield Footer()
 
@@ -45,7 +42,6 @@ class EventoApp(App):
     def on_button_pressed(self, event: Button.Pressed):
         control = event.button
         if isinstance(control, MenuButton):
-            # Lanza un mensaje con la acción del botón
             self.post_message(self.MenuAction(control.action_key))
 
     # Evento para manejar la acción seleccionada
@@ -64,7 +60,6 @@ class EventoApp(App):
                 from tui import eliminar_evento_tui
                 eliminar_evento_tui()
             case "salir":
-                print("\n👋 Saliendo…")
                 self.exit()
 
 # ------------------ EJECUCIÓN ------------------ #
