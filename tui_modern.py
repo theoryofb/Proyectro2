@@ -72,28 +72,29 @@ class FormScreen(Screen):
             self.app.pop_screen()
             return
 
-        datos = {
-            "nombre": self.query_one("#nombre").value,
-            "carnet": self.query_one("#carnet").value,
-            "direccion_domicilio": self.query_one("#direccion").value,
-            "tipo": self.query_one("#tipo").value,
-            "monto_garantia": float(self.query_one("#garantia").value),
-            "monto_total": float(self.query_one("#total").value),
-            "dia": datetime.strptime(self.query_one("#dia").value, "%Y-%m-%d").date(),
-            "hora_fin": datetime.strptime(self.query_one("#hora").value, "%H:%M").time(),
-            "decoracion": self.query_one("#decoracion").value
-        }
+        if event.button.id == "guardar":
+            datos = {
+                "nombre": self.query_one("#nombre").value,
+                "carnet": self.query_one("#carnet").value,
+                "direccion_domicilio": self.query_one("#direccion").value,
+                "tipo": self.query_one("#tipo").value,
+                "monto_garantia": float(self.query_one("#garantia").value),
+                "monto_total": float(self.query_one("#total").value),
+                "dia": datetime.strptime(self.query_one("#dia").value, "%Y-%m-%d").date(),
+                "hora_fin": datetime.strptime(self.query_one("#hora").value, "%H:%M").time(),
+                "decoracion": self.query_one("#decoracion").value
+            }
 
-        if self.editar:
-            modificar_evento(self.evento.id, **datos)
-        else:
-            agregar_evento(**datos)
+            if self.editar:
+                modificar_evento(self.evento.id, **datos)
+            else:
+                agregar_evento(**datos)
 
-        self.app.pop_screen()
+            self.app.pop_screen()
 
 
 # -------------------------------------------------------
-# 🔷 LISTA DE EVENTOS
+# 🔷 LISTA DE EVENTOS CON BOTONES
 # -------------------------------------------------------
 class ListaEventos(Screen):
 
@@ -106,7 +107,7 @@ class ListaEventos(Screen):
 
     def on_mount(self):
         self.tabla.add_columns(
-            "ID", "Tipo", "Nombre", "Carnet", "Fecha", "Hora", "Decoración"
+            "ID", "Tipo", "Nombre", "Carnet", "Fecha", "Hora", "Decoración", "Editar", "Eliminar"
         )
 
         eventos = list(listar_eventos())
@@ -118,32 +119,28 @@ class ListaEventos(Screen):
 
         for e in eventos:
             conflicto = len(fechas[e.dia]) > 1
-            # En versiones modernas de textual, DataTable no acepta style en add_row
-            self.tabla.add_row(
+            fila_index = self.tabla.add_row(
                 str(e.id), e.tipo, e.nombre, e.carnet,
                 str(e.dia), str(e.hora_fin),
-                "Sí" if e.decoracion else "No"
+                "Sí" if e.decoracion else "No",
+                Button("✏ Editar", id=f"editar-{e.id}", variant="primary"),
+                Button("❌ Eliminar", id=f"eliminar-{e.id}", variant="error")
             )
             if conflicto:
-                fila_index = len(self.tabla.rows) - 1
                 for col_index in range(len(self.tabla.columns)):
                     self.tabla.get_row(fila_index).cells[col_index].style = "bold red"
 
-    def key_e(self):
-        fila = self.tabla.cursor_row
-        if fila is None:
-            return
-        event_id = int(self.tabla.rows[fila].cells[0].value)
-        evento = next(e for e in listar_eventos() if e.id == event_id)
-        self.app.push_screen(FormScreen(editar=True, evento=evento))
-
-    def key_d(self):
-        fila = self.tabla.cursor_row
-        if fila is None:
-            return
-        event_id = int(self.tabla.rows[fila].cells[0].value)
-        eliminar_evento(event_id)
-        self.app.push_screen(ListaEventos())
+    def on_button_pressed(self, event: Button.Pressed):
+        btn_id = event.button.id
+        if btn_id.startswith("editar-"):
+            event_id = int(btn_id.split("-")[1])
+            evento = next(e for e in listar_eventos() if e.id == event_id)
+            self.app.push_screen(FormScreen(editar=True, evento=evento))
+        elif btn_id.startswith("eliminar-"):
+            event_id = int(btn_id.split("-")[1])
+            eliminar_evento(event_id)
+            # refresca la pantalla
+            self.app.push_screen(ListaEventos())
 
 
 # -------------------------------------------------------
