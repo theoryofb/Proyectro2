@@ -1,130 +1,192 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Button, Header, Footer, Static, TextLog
-from textual.containers import Vertical, Horizontal
+from textual.widgets import (
+    Header, Footer, Button, Static, Input, Checkbox, Select, DataTable
+)
+from textual.containers import Vertical, Horizontal, Container
+from textual.screen import Screen
 from datetime import datetime
-from database import listar_eventos
-from tabulate import tabulate
+from database import agregar_evento, listar_eventos, modificar_evento, eliminar_evento
 
 
-class MenuVisualApp(App):
+# -------------------------------------------------------
+# 🔷 FORMULARIO DE REGISTRO / MODIFICACIÓN
+# -------------------------------------------------------
+class FormScreen(Screen):
 
-    ### 🔹 ESTILOS MODERNOS
-    CSS = """
-    Screen {
-        align: center middle;
-    }
+    def __init__(self, editar=False, evento=None):
+        super().__init__()
+        self.editar = editar
+        self.evento = evento
 
-    #banner {
-        text-align: center;
-        height: 4;
-        background: yellow;
-        color: black;
-        content-align: center middle;
-        margin-bottom: 2;
-        border: double black;
-    }
-
-    Button {
-        width: 22;
-        margin: 1;
-        border: round white;
-        background: darkgreen;
-        color: white;
-    }
-    Button:focus {
-        background: green;
-        color: black;
-    }
-
-    #log {
-        height: 20;
-        width: 100%;
-        border: round cyan;
-        margin-top: 2;
-    }
-    """
-
-    ### 🔹 ATAJOS DE TECLADO
-    BINDINGS = [
-        ("l", "listar", "Listar eventos"),
-        ("q", "quit", "Salir"),
-    ]
-
-    ### ---------------- UI ---------------- ###
     def compose(self) -> ComposeResult:
-
         yield Header(show_clock=True)
+        yield Static(
+            "✍ REGISTRAR EVENTO" if not self.editar else "✏ MODIFICAR EVENTO",
+            id="title"
+        )
 
-        yield Static("🌟 BIENVENIDO AL SISTEMA DE EVENTOS 🌟", id="banner")
+        yield Input(placeholder="Nombre del cliente", id="nombre")
+        yield Input(placeholder="Carnet", id="carnet")
+        yield Input(placeholder="Dirección", id="direccion")
 
-        with Horizontal():
-            yield Button("Registrar evento", id="registrar")
-            yield Button("Listar eventos", id="listar")
-            yield Button("Modificar evento", id="modificar")
-            yield Button("Eliminar evento", id="eliminar")
-            yield Button("🚪 Salir", id="salir")
+        yield Select(
+            options=[
+                ("Cumpleaños", "cumpleaños"),
+                ("Boda", "boda"),
+                ("Graduación", "graduación"),
+                ("Fiesta infantil", "infantil"),
+                ("Baby Shower", "baby"),
+                ("Corporativo", "corporativo"),
+                ("Otro", "otro")
+            ],
+            id="tipo"
+        )
 
-        yield TextLog(id="log", highlight=True)
+        yield Input(placeholder="Monto garantía", id="garantia")
+        yield Input(placeholder="Monto total", id="total")
+
+        yield Input(placeholder="Fecha YYYY-MM-DD", id="dia")
+        yield Input(placeholder="Hora fin HH:MM", id="hora")
+
+        yield Checkbox("¿Requiere decoración?", id="decoracion")
+
+        yield Horizontal(
+            Button("💾 Guardar", id="guardar", variant="success"),
+            Button("⬅ Volver", id="volver", variant="error"),
+            id="botones"
+        )
 
         yield Footer()
 
-    ### ---------------- EVENTOS ---------------- ###
+    def on_mount(self):
+        if self.editar and self.evento:
+            self.query_one("#nombre").value = self.evento.nombre
+            self.query_one("#carnet").value = self.evento.carnet
+            self.query_one("#direccion").value = self.evento.direccion_domicilio
+            self.query_one("#tipo").value = self.evento.tipo
+            self.query_one("#garantia").value = str(self.evento.monto_garantia)
+            self.query_one("#total").value = str(self.evento.monto_total)
+            self.query_one("#dia").value = str(self.evento.dia)
+            self.query_one("#hora").value = str(self.evento.hora_fin)
+            self.query_one("#decoracion").value = self.evento.decoracion
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        botones = {
-            "listar": self.action_listar,
-            "salir": self.action_quit
-        }
-
-        if event.button.id in botones:
-            botones[event.button.id]()
-        else:
-            self.show_in_console(event.button.id)
-
-    ### 🔹 Acción LISTAR dentro de la TUI
-    def action_listar(self):
-        eventos = listar_eventos()
-
-        log = self.query_one("#log", TextLog)
-        log.clear()
-
-        if not eventos:
-            log.write("⚠ No hay eventos registrados.")
+    def on_button_pressed(self, event: Button.Pressed):
+        if event.button.id == "volver":
+            self.app.pop_screen()
             return
 
-        eventos = sorted(eventos, key=lambda e: e.dia)
+        datos = {
+            "nombre": self.query_one("#nombre").value,
+            "carnet": self.query_one("#carnet").value,
+            "direccion_domicilio": self.query_one("#direccion").value,
+            "tipo": self.query_one("#tipo").value,
+            "monto_garantia": float(self.query_one("#garantia").value),
+            "monto_total": float(self.query_one("#total").value),
+            "dia": datetime.strptime(self.query_one("#dia").value, "%Y-%m-%d").date(),
+            "hora_fin": datetime.strptime(self.query_one("#hora").value, "%H:%M").time(),
+            "decoracion": self.query_one("#decoracion").value
+        }
 
-        tabla = [
-            [e.id, e.tipo, e.nombre, e.carnet, e.direccion_domicilio,
-             e.monto_garantia, e.monto_total, e.dia, e.hora_fin,
-             "Sí" if e.decoracion else "No"]
-            for e in eventos
-        ]
+        if self.editar:
+            modificar_evento(self.evento.id, **datos)
+        else:
+            agregar_evento(**datos)
 
-        text = tabulate(
-            tabla,
-            headers=["ID", "Tipo", "Nombre", "Carnet", "Dirección",
-                     "Garantía", "Total", "Fecha", "Fin", "Deco"],
-            tablefmt="fancy_grid"
+        self.app.pop_screen()
+
+
+# -------------------------------------------------------
+# 🔷 LISTA DE EVENTOS
+# -------------------------------------------------------
+class ListaEventos(Screen):
+
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=True)
+        yield Static("📋 LISTA DE EVENTOS", id="title")
+        self.tabla = DataTable(id="tabla")
+        yield self.tabla
+        yield Footer()
+
+    def on_mount(self):
+        self.tabla.add_columns(
+            "ID", "Tipo", "Nombre", "Carnet", "Fecha", "Hora", "Decoración"
         )
 
-        for line in text.split("\n"):
-            log.write(line)
+        eventos = list(listar_eventos())
+        eventos.sort(key=lambda e: e.dia)
 
-        log.write("\n💡 Usa Q para salir")
+        fechas = {}
+        for e in eventos:
+            fechas.setdefault(e.dia, []).append(e)
 
-    ### 🔹 Abrir otras funciones en consola mientras las migramos
-    def show_in_console(self, action):
-        log = self.query_one("#log", TextLog)
-        log.write(f"⚠ Esta función aún no está en la TUI ({action})")
-        log.write("➡ Se abrirá en modo consola...")
-        import os
-        os.system("python tui.py")
+        for e in eventos:
+            conflicto = len(fechas[e.dia]) > 1
+            estilo = "bold red" if conflicto else ""
 
-    ### 🔹 Acción SALIR
-    def action_quit(self):
-        self.exit()
+            self.tabla.add_row(
+                str(e.id), e.tipo, e.nombre, e.carnet,
+                str(e.dia), str(e.hora_fin),
+                "Sí" if e.decoracion else "No",
+                style=estilo
+            )
+
+    def key_e(self):
+        fila = self.tabla.cursor_row
+        if fila is None:
+            return
+        event_id = int(self.tabla.rows[fila].cells[0].value)
+        evento = next(e for e in listar_eventos() if e.id == event_id)
+        self.app.push_screen(FormScreen(editar=True, evento=evento))
+
+    def key_d(self):
+        fila = self.tabla.cursor_row
+        if fila is None:
+            return
+        event_id = int(self.tabla.rows[fila].cells[0].value)
+        eliminar_evento(event_id)
+        self.app.push_screen(ListaEventos())
 
 
+# -------------------------------------------------------
+# 🔷 MENÚ PRINCIPAL
+# -------------------------------------------------------
+class ModernApp(App):
+
+    CSS = """
+    #title {
+        padding: 1;
+        text-align: center;
+        color: yellow;
+    }
+    """
+
+    BINDINGS = [
+        ("q", "quit", "Salir"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=True)
+        yield Static("🌟 BIENVENIDO AL SISTEMA DE EVENTOS 🌟", id="title")
+
+        yield Vertical(
+            Button("➕ Registrar evento", id="add", variant="success"),
+            Button("📋 Ver eventos", id="list", variant="primary"),
+            Button("❌ Salir", id="quitbtn", variant="error"),
+            id="menu"
+        )
+        yield Footer()
+
+    def on_button_pressed(self, event: Button.Pressed):
+        if event.button.id == "add":
+            self.push_screen(FormScreen())
+        elif event.button.id == "list":
+            self.push_screen(ListaEventos())
+        elif event.button.id == "quitbtn":
+            self.exit()
+
+
+# -------------------------------------------------------
+# 🚀 EJECUCIÓN
+# -------------------------------------------------------
 if __name__ == "__main__":
-    MenuVisualApp().run()
+    ModernApp().run()
