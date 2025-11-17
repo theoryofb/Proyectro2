@@ -96,7 +96,7 @@ class FormScreen(Screen):
 
 
 # =========================================================
-# 🔷 LISTA DE EVENTOS (VER / MODIFICAR / ELIMINAR)
+# 🔷 LISTA DE EVENTOS
 # =========================================================
 class ListaEventos(Screen):
 
@@ -131,16 +131,16 @@ class ListaEventos(Screen):
             )
 
         # resaltar fechas con conflicto
-        for idx, row in enumerate(self.tabla.rows):
-            fecha_str = row.cells[4].value
+        for fila_index in range(len(self.tabla.rows)):
+            row = self.tabla.get_row(fila_index)
+            fecha_str = row.get_cell_value(4)
             try:
                 fecha = datetime.fromisoformat(fecha_str).date()
             except:
                 continue
-
             if len(fechas.get(fecha, [])) > 1:
                 for col in range(len(self.tabla.columns)):
-                    row.cells[col].style = "bold red"
+                    row.set_cell_style(col, "bold red")
 
     async def on_key(self, event: events.Key) -> None:
         if event.key != "enter":
@@ -150,12 +150,12 @@ class ListaEventos(Screen):
         if fila is None:
             return
 
-        event_id = int(self.tabla.rows[fila].cells[0].value)
+        row = self.tabla.get_row(fila)
+        event_id = int(row.get_cell_value(0))
         evento = next(e for e in listar_eventos() if e.id == event_id)
 
         if self.accion == "modificar":
             self.app.push_screen(FormScreen(editar=True, evento=evento))
-
         elif self.accion == "eliminar":
             eliminar_evento(event_id)
             self.tabla.remove_row(fila)
@@ -197,16 +197,12 @@ class ModernApp(App):
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "add":
             self.push_screen(FormScreen())
-
         elif event.button.id == "list":
             self.push_screen(ListaEventos("ver"))
-
         elif event.button.id == "mod":
             self.push_screen(ListaEventos("modificar"))
-
         elif event.button.id == "del":
             self.push_screen(ListaEventos("eliminar"))
-
         elif event.button.id == "quitbtn":
             self.exit()
 
@@ -216,4 +212,3 @@ class ModernApp(App):
 # =========================================================
 if __name__ == "__main__":
     ModernApp().run()
-
