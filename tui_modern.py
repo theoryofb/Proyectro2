@@ -5,14 +5,11 @@ from textual.widgets import (
 from textual.containers import Vertical, Horizontal
 from textual.screen import Screen
 from datetime import datetime
-from textual import events
-
 from database import agregar_evento, listar_eventos, modificar_evento, eliminar_evento
 
-
-# =========================================================
+# -------------------------------------------------------
 # 🔷 FORMULARIO DE REGISTRO / MODIFICACIÓN
-# =========================================================
+# -------------------------------------------------------
 class FormScreen(Screen):
 
     def __init__(self, editar=False, evento=None):
@@ -95,14 +92,10 @@ class FormScreen(Screen):
         self.app.pop_screen()
 
 
-# =========================================================
+# -------------------------------------------------------
 # 🔷 LISTA DE EVENTOS
-# =========================================================
+# -------------------------------------------------------
 class ListaEventos(Screen):
-
-    def __init__(self, accion="ver"):
-        super().__init__()
-        self.accion = accion  # ver | modificar | eliminar
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -124,48 +117,38 @@ class ListaEventos(Screen):
             fechas.setdefault(e.dia, []).append(e)
 
         for e in eventos:
+            conflicto = len(fechas[e.dia]) > 1
+            # En versiones modernas de textual, DataTable no acepta style en add_row
             self.tabla.add_row(
                 str(e.id), e.tipo, e.nombre, e.carnet,
                 str(e.dia), str(e.hora_fin),
                 "Sí" if e.decoracion else "No"
             )
+            if conflicto:
+                fila_index = len(self.tabla.rows) - 1
+                for col_index in range(len(self.tabla.columns)):
+                    self.tabla.get_row(fila_index).cells[col_index].style = "bold red"
 
-        # resaltar fechas con conflicto
-        for fila_index in range(len(self.tabla.rows)):
-            row = self.tabla.get_row(fila_index)
-            fecha_str = row.get_cell_value(4)
-            try:
-                fecha = datetime.fromisoformat(fecha_str).date()
-            except:
-                continue
-            if len(fechas.get(fecha, [])) > 1:
-                for col in range(len(self.tabla.columns)):
-                    row.set_cell_style(col, "bold red")
-
-    async def on_key(self, event: events.Key) -> None:
-        if event.key != "enter":
-            return
-
+    def key_e(self):
         fila = self.tabla.cursor_row
         if fila is None:
             return
-
-        row = self.tabla.get_row(fila)
-        event_id = int(row.get_cell_value(0))
+        event_id = int(self.tabla.rows[fila].cells[0].value)
         evento = next(e for e in listar_eventos() if e.id == event_id)
+        self.app.push_screen(FormScreen(editar=True, evento=evento))
 
-        if self.accion == "modificar":
-            self.app.push_screen(FormScreen(editar=True, evento=evento))
-        elif self.accion == "eliminar":
-            eliminar_evento(event_id)
-            self.tabla.remove_row(fila)
-            self.query_one("#title", Static).update("❌ EVENTO ELIMINADO ❌")
-            self.app.bell()
+    def key_d(self):
+        fila = self.tabla.cursor_row
+        if fila is None:
+            return
+        event_id = int(self.tabla.rows[fila].cells[0].value)
+        eliminar_evento(event_id)
+        self.app.push_screen(ListaEventos())
 
 
-# =========================================================
+# -------------------------------------------------------
 # 🔷 MENÚ PRINCIPAL
-# =========================================================
+# -------------------------------------------------------
 class ModernApp(App):
 
     CSS = """
@@ -187,9 +170,7 @@ class ModernApp(App):
         yield Vertical(
             Button("➕ Registrar evento", id="add", variant="success"),
             Button("📋 Ver eventos", id="list", variant="primary"),
-            Button("✏ Modificar evento", id="mod", variant="primary"),
-            Button("❌ Eliminar evento", id="del", variant="error"),
-            Button("🚪 Salir", id="quitbtn", variant="error"),
+            Button("❌ Salir", id="quitbtn", variant="error"),
             id="menu"
         )
         yield Footer()
@@ -198,17 +179,14 @@ class ModernApp(App):
         if event.button.id == "add":
             self.push_screen(FormScreen())
         elif event.button.id == "list":
-            self.push_screen(ListaEventos("ver"))
-        elif event.button.id == "mod":
-            self.push_screen(ListaEventos("modificar"))
-        elif event.button.id == "del":
-            self.push_screen(ListaEventos("eliminar"))
+            self.push_screen(ListaEventos())
         elif event.button.id == "quitbtn":
             self.exit()
 
 
-# =========================================================
+# -------------------------------------------------------
 # 🚀 EJECUCIÓN
-# =========================================================
+# -------------------------------------------------------
 if __name__ == "__main__":
     ModernApp().run()
+
