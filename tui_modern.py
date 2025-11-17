@@ -94,7 +94,7 @@ class FormScreen(Screen):
 
 
 # -------------------------------------------------------
-# 🔷 LISTA DE EVENTOS CON BOTONES
+# 🔷 LISTA DE EVENTOS CON BOTONES EDITAR / ELIMINAR
 # -------------------------------------------------------
 class ListaEventos(Screen):
 
@@ -139,7 +139,6 @@ class ListaEventos(Screen):
         elif btn_id.startswith("eliminar-"):
             event_id = int(btn_id.split("-")[1])
             eliminar_evento(event_id)
-            # refresca la pantalla
             self.app.push_screen(ListaEventos())
 
 
