@@ -86,10 +86,10 @@ class FormScreen(Screen):
 
         if self.editar:
             modificar_evento(self.evento.id, **datos)
+            self.app.pop_screen()
         else:
             agregar_evento(**datos)
-
-        self.app.pop_screen()
+            self.app.pop_screen()
 
 
 # -------------------------------------------------------
@@ -136,14 +136,20 @@ class ListaEventos(Screen):
         fila = self.tabla.cursor_row
         if fila is None:
             return
+
         event_id = int(self.tabla.rows[fila].cells[0].value)
         evento = next(e for e in listar_eventos() if e.id == event_id)
 
+        # 👉 MODIFICAR
         if self.accion == "modificar":
             self.app.push_screen(FormScreen(editar=True, evento=evento))
+
+        # 👉 ELIMINAR
         elif self.accion == "eliminar":
             eliminar_evento(event_id)
-            self.app.push_screen(ListaEventos(accion="eliminar"))
+            self.tabla.remove_row(fila)
+            self.query_one("#title").update("❌ EVENTO ELIMINADO ❌")
+            self.app.bell()
 
 
 # -------------------------------------------------------
@@ -195,4 +201,3 @@ class ModernApp(App):
 # -------------------------------------------------------
 if __name__ == "__main__":
     ModernApp().run()
-
