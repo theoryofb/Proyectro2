@@ -1,7 +1,7 @@
 from textual.app import App, ComposeResult
 from textual.widgets import Button, Header, Footer, Static, Input, Label, DataTable, Checkbox, Select
-from textual.containers import Horizontal, Vertical, Container
-from database import agregar_evento, listar_eventos, modificar_evento, eliminar_evento
+from textual.containers import Horizontal, Vertical
+from database import agregar_evento, listar_eventos
 from datetime import datetime
 
 TIPOS_EVENTO = ["Cumpleaños", "Boda", "Graduación", "Otro"]
@@ -40,8 +40,6 @@ class TUIApp(App):
         with Horizontal():
             yield Button("Registrar evento", id="registrar")
             yield Button("Listar eventos", id="listar")
-            yield Button("Modificar evento", id="modificar")
-            yield Button("Eliminar evento", id="eliminar")
             yield Button("Salir", id="salir")
 
         yield Footer()
@@ -54,10 +52,6 @@ class TUIApp(App):
             await self.show_registrar()
         elif button_id == "listar":
             await self.show_listar()
-        elif button_id == "modificar":
-            await self.show_modificar()
-        elif button_id == "eliminar":
-            await self.show_eliminar()
         elif button_id == "salir":
             self.exit()
 
@@ -67,7 +61,7 @@ class TUIApp(App):
         self.registrar_container = Vertical()
         self.mount(self.registrar_container)
 
-        self.registrar_container.mount(Label("Registrar Evento", id="subtitulo"))
+        self.registrar_container.mount(Label("Registrar Evento"))
         self.tipo_select = Select(TIPOS_EVENTO, prompt="Tipo de evento")
         self.registrar_container.mount(self.tipo_select)
         self.nombre_input = Input(placeholder="Nombre del cliente")
@@ -95,10 +89,10 @@ class TUIApp(App):
         eventos = list(listar_eventos())
         if not eventos:
             self.mount(Label("No hay eventos registrados."))
+            self.mount(Button("Volver", id="volver_menu"))
             return
 
         eventos.sort(key=lambda e: e.dia)
-
         fechas = {}
         for e in eventos:
             fechas.setdefault(e.dia, []).append(e)
@@ -118,24 +112,12 @@ class TUIApp(App):
         self.mount(tabla)
         self.mount(Button("Volver", id="volver_menu"))
 
-    async def show_modificar(self):
-        self.clear_screen_widgets()
-        self.mount(Label("Modificar evento aún usa consola (tui.py) por simplicidad."))
-        import os
-        os.system("python tui.py")
-        self.mount(Button("Volver", id="volver_menu"))
-
-    async def show_eliminar(self):
-        self.clear_screen_widgets()
-        self.mount(Label("Eliminar evento aún usa consola (tui.py) por simplicidad."))
-        import os
-        os.system("python tui.py")
-        self.mount(Button("Volver", id="volver_menu"))
-
     # ---------------- HELPERS ---------------- #
     def clear_screen_widgets(self):
-        for child in self.query(Static) + self.query(Vertical) + self.query(DataTable) + self.query(Label) + self.query(Input) + self.query(Checkbox):
-            child.remove()
+        # Remueve todos los widgets de estas clases
+        widgets_to_remove = list(self.query(Static)) + list(self.query(Vertical)) + list(self.query(DataTable)) + list(self.query(Label)) + list(self.query(Input)) + list(self.query(Checkbox))
+        for w in widgets_to_remove:
+            w.remove()
 
     async def on_button_pressed_guardar_registro(self, event):
         tipo = self.tipo_select.value
