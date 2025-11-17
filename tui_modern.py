@@ -3,10 +3,12 @@ from textual.widgets import Button, Static, Header, Footer
 from textual.containers import Horizontal
 from textual import events
 
-# Tus funciones clásicas
+# Importar tus funciones clásicas
 from tui import agregar_evento_tui, listar_eventos_tui, modificar_evento_tui, eliminar_evento_tui
 
 class MenuVisualApp(App):
+
+    # CSS para los botones
     CSS = """
     Button {
         width: 20;
@@ -18,7 +20,7 @@ class MenuVisualApp(App):
         content-align: center middle;
     }
     Button:focus {
-        background: dark_green;
+        background: darkgreen;  /* corregido */
         color: white;
     }
     """
@@ -52,9 +54,10 @@ class MenuVisualApp(App):
                 self.exit()
 
     async def on_key(self, event: events.Key) -> None:
-        # También salir con Q o Escape
+        # Salir también con Q o Escape
         if event.key in ("q", "escape"):
             self.exit()
 
 if __name__ == "__main__":
     MenuVisualApp().run()
+
