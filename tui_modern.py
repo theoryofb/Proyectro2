@@ -59,16 +59,34 @@ class FormScreen(Screen):
         yield Footer()
 
     def on_mount(self):
-        if self.editar and self.evento:
-            self.query_one("#nombre").value = self.evento.nombre
-            self.query_one("#carnet").value = self.evento.carnet
-            self.query_one("#direccion").value = self.evento.direccion_domicilio
-            self.query_one("#tipo").value = self.evento.tipo
-            self.query_one("#garantia").value = str(self.evento.monto_garantia)
-            self.query_one("#total").value = str(self.evento.monto_total)
-            self.query_one("#dia").value = str(self.evento.dia)
-            self.query_one("#hora").value = str(self.evento.hora_fin)
-            self.query_one("#decoracion").value = self.evento.decoracion
+    self.tabla.add_columns(
+        "ID", "Tipo", "Nombre", "Carnet", "Fecha", "Hora", "Decoración"
+    )
+
+    eventos = list(listar_eventos())
+    eventos.sort(key=lambda e: e.dia)
+
+    # Detectar fechas duplicadas
+    fechas = {}
+    for e in eventos:
+        fechas.setdefault(e.dia, []).append(e)
+
+    for e in eventos:
+        conflicto = len(fechas[e.dia]) > 1
+
+        # Agregar la fila sin 'style'
+        self.tabla.add_row(
+            str(e.id), e.tipo, e.nombre, e.carnet,
+            str(e.dia), str(e.hora_fin),
+            "Sí" if e.decoracion else "No"
+        )
+
+        # Si hay conflicto, pintar fila de rojo
+        if conflicto:
+            fila_index = len(self.tabla.rows) - 1
+            for col in range(len(self.tabla.columns)):
+                self.tabla.set_cell_style(fila_index, col, "bold red")
+
 
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "volver":
