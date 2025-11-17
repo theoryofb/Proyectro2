@@ -44,9 +44,11 @@ class TUIApp(App):
         yield Footer()
 
     # ---------------- EVENT HANDLER ---------------- #
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+
+     async def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
-       if button_id == "registrar":
+    
+        if button_id == "registrar":
             self.create_task(self.registrar_evento())
         elif button_id == "listar":
             self.create_task(self.listar_eventos())
@@ -56,6 +58,7 @@ class TUIApp(App):
             self.create_task(self.eliminar_evento())
         elif button_id == "salir":
             self.exit()
+
 
     # ---------------- FUNCIONES ---------------- #
     async def registrar_evento(self):
