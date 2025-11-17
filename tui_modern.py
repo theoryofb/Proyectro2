@@ -1,43 +1,59 @@
-from textual.app import App
-from textual.widgets import Static
+from textual.app import App, ComposeResult
+from textual.widgets import Button, Static, Header, Footer
+from textual.containers import Horizontal
 from textual import events
-from rich.text import Text
-from rich.console import Console
 
-# Importar tus funciones clásicas
+# Tus funciones clásicas
 from tui import agregar_evento_tui, listar_eventos_tui, modificar_evento_tui, eliminar_evento_tui
 
-console = Console()
-
 class MenuVisualApp(App):
-    def compose(self):
-        # Crear botones visuales en fila con colores
-        botones = [
-            ("➕ Registrar", "registrar"),
-            ("📋 Listar", "listar"),
-            ("✏️ Modificar", "modificar"),
-            ("❌ Eliminar", "eliminar"),
-            ("🚪 Salir", "salir")
-        ]
+    CSS = """
+    Button {
+        width: 20;
+        height: 3;
+        margin: 1;
+        border: round white;
+        background: blue;
+        color: white;
+        content-align: center middle;
+    }
+    Button:focus {
+        background: dark_green;
+        color: white;
+    }
+    """
 
-        texto_botones = Text()
-        for b, _ in botones:
-            texto_botones.append(f" {b} ", style="bold white on blue")
-            texto_botones.append("  ")  # Espacio entre botones
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=True)
+        yield Static("📅 SISTEMA DE EVENTOS - Selecciona una opción", style="bold cyan")
+        
+        # Contenedor horizontal de botones
+        with Horizontal():
+            yield Button("➕ Registrar", id="registrar")
+            yield Button("📋 Listar", id="listar")
+            yield Button("✏️ Modificar", id="modificar")
+            yield Button("❌ Eliminar", id="eliminar")
+            yield Button("🚪 Salir", id="salir")
+        
+        yield Footer()
 
-        yield Static(texto_botones, expand=True)
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        button_id = event.button.id
+        match button_id:
+            case "registrar":
+                agregar_evento_tui()
+            case "listar":
+                listar_eventos_tui()
+            case "modificar":
+                modificar_evento_tui()
+            case "eliminar":
+                eliminar_evento_tui()
+            case "salir":
+                self.exit()
 
-    async def on_key(self, event: events.Key):
-        # Asignamos teclas para “presionar” botones
-        if event.key == "1":
-            agregar_evento_tui()
-        elif event.key == "2":
-            listar_eventos_tui()
-        elif event.key == "3":
-            modificar_evento_tui()
-        elif event.key == "4":
-            eliminar_evento_tui()
-        elif event.key in ("5", "q", "escape"):
+    async def on_key(self, event: events.Key) -> None:
+        # También salir con Q o Escape
+        if event.key in ("q", "escape"):
             self.exit()
 
 if __name__ == "__main__":
