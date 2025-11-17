@@ -42,19 +42,28 @@ class EventoApp(App):
         if isinstance(control, MenuButton):
             self.post_message(self.MenuAction(control.action_key))
 
-    def on_menu_action(self, message: MenuAction):
-        match message.action:
-            case "registrar":
-                print("\n➡ Ejecutar función registrar_evento()")
-            case "listar":
-                print("\n➡ Ejecutar función listar_eventos()")
-            case "editar":
-                print("\n➡ Ejecutar función editar_evento()")
-            case "eliminar":
-                print("\n➡ Ejecutar función eliminar_evento()")
-            case "salir":
-                print("\n👋 Saliendo…")
-                self.exit()
+def on_menu_action(self, message: MenuAction):
+    match message.action:
+        case "registrar":
+            from tui import agregar_evento_tui
+            agregar_evento_tui()
+
+        case "listar":
+            from tui import listar_eventos_tui
+            listar_eventos_tui()
+
+        case "editar":
+            from tui import modificar_evento_tui
+            modificar_evento_tui()
+
+        case "eliminar":
+            from tui import eliminar_evento_tui
+            eliminar_evento_tui()
+
+        case "salir":
+            print("\n👋 Saliendo…")
+            self.exit()
+
 
 if __name__ == "__main__":
     EventoApp().run()
