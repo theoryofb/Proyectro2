@@ -1,14 +1,15 @@
+
 from textual.app import App, ComposeResult
 from textual.widgets import Button, Static, Header, Footer
 from textual.containers import Horizontal
 from textual import events
+from rich.text import Text
 
-# Importar tus funciones clásicas
+# Tus funciones clásicas
 from tui import agregar_evento_tui, listar_eventos_tui, modificar_evento_tui, eliminar_evento_tui
 
 class MenuVisualApp(App):
 
-    # CSS para los botones
     CSS = """
     Button {
         width: 20;
@@ -20,14 +21,17 @@ class MenuVisualApp(App):
         content-align: center middle;
     }
     Button:focus {
-        background: darkgreen;  /* corregido */
+        background: darkgreen;
         color: white;
     }
     """
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield Static("📅 SISTEMA DE EVENTOS - Selecciona una opción", style="bold cyan")
+        
+        # Usamos Text para el título con formato
+        titulo = Text("📅 SISTEMA DE EVENTOS - Selecciona una opción", style="bold cyan")
+        yield Static(titulo)
         
         # Contenedor horizontal de botones
         with Horizontal():
@@ -60,4 +64,3 @@ class MenuVisualApp(App):
 
 if __name__ == "__main__":
     MenuVisualApp().run()
-
