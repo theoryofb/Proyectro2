@@ -3,17 +3,18 @@ from database import agregar_evento, listar_eventos, modificar_evento, eliminar_
 from datetime import datetime
 from tabulate import tabulate
 from colorama import init, Fore, Style
+from collections import Counter
 
 # Inicializar colorama
 init(autoreset=True)
 
 # ---------------- FUNCIONES AUXILIARES ---------------- #
 def clear_screen():
-    # En Git Bash, "cls" no siempre funciona; también usamos ANSI escape codes
     print("\033c", end="")
 
 def pause():
-    input(Fore.MAGENTA + "\nPresiona Enter para continuar..." + Style.RESET_ALL)
+    print(Fore.MAGENTA + "\nPresiona Enter para continuar..." + Style.RESET_ALL)
+    input()
 
 # ---------------- MENÚ PRINCIPAL ---------------- #
 def menu():
@@ -29,7 +30,13 @@ def menu():
         print("4 - Listar eventos")
         print("5 - Salir" + Style.RESET_ALL)
 
-        opcion = input(Fore.GREEN + "\nSelecciona una opción: " + Style.RESET_ALL)
+        print(Fore.BLUE + "\n(Atajos: Q o ESC para salir)" + Style.RESET_ALL)
+        opcion = input(Fore.GREEN + "\nSelecciona una opción: " + Style.RESET_ALL).strip().lower()
+
+        # 🔹 Bindings de salida
+        if opcion in ["5", "q", "esc"]:
+            print(Fore.MAGENTA + "Saliendo del sistema...")
+            break
 
         if opcion == "1":
             agregar_evento_tui()
@@ -39,9 +46,6 @@ def menu():
             eliminar_evento_tui()
         elif opcion == "4":
             listar_eventos_tui()
-        elif opcion == "5":
-            print(Fore.MAGENTA + "Saliendo del sistema...")
-            break
         else:
             print(Fore.RED + "Opción inválida, intenta de nuevo.")
             pause()
@@ -50,6 +54,7 @@ def menu():
 def agregar_evento_tui():
     clear_screen()
     print(Fore.BLUE + Style.BRIGHT + "REGISTRAR NUEVO EVENTO".center(80) + Style.RESET_ALL)
+
     tipo = input("Tipo de evento: ")
     nombre = input("Nombre del cliente: ")
     carnet = input("Carnet de identidad: ")
@@ -65,37 +70,23 @@ def agregar_evento_tui():
     pause()
 
 def marcar_conflictos(eventos):
-    """
-    Marca los eventos que comparten la misma fecha con un atributo 'conflicto'.
-    """
-    fechas = {}
+    fechas = [e.dia for e in eventos]
+    conflictos = {f for f, c in Counter(fechas).items() if c > 1}
     for e in eventos:
-        fecha = e.dia  # se asume que es datetime.date
-        if fecha in fechas:
-            fechas[fecha].append(e)
-        else:
-            fechas[fecha] = [e]
-
-    for lista in fechas.values():
-        if len(lista) > 1:
-            for e in lista:
-                setattr(e, "conflicto", True)
-        else:
-            for e in lista:
-                setattr(e, "conflicto", False)
-
+        setattr(e, "conflicto", e.dia in conflictos)
 
 def listar_eventos_tui():
     clear_screen()
-    eventos = list(listar_eventos())  # <-- convertir a lista para poder ordenar
+    eventos = list(listar_eventos())
 
-    # Ordenar por fecha
+    # Orden por fecha
     eventos.sort(key=lambda x: x.dia)
 
-    # Marcar conflictos
+    # Detectar conflictos
     marcar_conflictos(eventos)
 
     print(Fore.CYAN + Style.BRIGHT + "LISTA DE EVENTOS".center(80) + Style.RESET_ALL)
+
     if not eventos:
         print(Fore.YELLOW + "\nNo hay eventos registrados.\n")
         pause()
@@ -115,19 +106,21 @@ def listar_eventos_tui():
             e.hora_fin,
             "Sí" if e.decoracion else "No"
         ]
-        if getattr(e, "conflicto", False):
+        if e.conflicto:
             fila = [Fore.RED + str(x) + Style.RESET_ALL for x in fila]
+
         tabla.append(fila)
 
-    print(tabulate(tabla,
-                   headers=["ID", "Tipo", "Nombre", "Carnet", "Dirección",
-                            "Garantía", "Total", "Fecha", "Hora fin", "Decoración"],
-                   tablefmt="fancy_grid",
-                   stralign="center",
-                   numalign="center"))
+    print(tabulate(
+        tabla,
+        headers=["ID", "Tipo", "Nombre", "Carnet", "Dirección", "Garantía", "Total",
+                 "Fecha", "Hora fin", "Decoración"],
+        tablefmt="fancy_grid",
+        stralign="center",
+        numalign="center",
+    ))
     print(Fore.RED + "\n⚠️  En rojo: eventos con conflicto de fecha.\n" + Style.RESET_ALL)
     pause()
-
 
 def modificar_evento_tui():
     listar_eventos_tui()
@@ -178,3 +171,4 @@ def eliminar_evento_tui():
 # ---------------- EJECUCIÓN ---------------- #
 if __name__ == "__main__":
     menu()
+
