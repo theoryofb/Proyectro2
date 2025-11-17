@@ -1,146 +1,41 @@
 from textual.app import App, ComposeResult
-from textual.widgets import (
-    Header, Footer, Button, Static, Input, Checkbox, Select, DataTable
-)
+from textual.widgets import Header, Footer, Button, Static, Input
 from textual.containers import Vertical, Horizontal
 from textual.screen import Screen
-from datetime import datetime
-from database import agregar_evento, listar_eventos, modificar_evento, eliminar_evento
+from database import eliminar_evento
 
 # -------------------------------------------------------
-# 🔷 FORMULARIO DE REGISTRO / MODIFICACIÓN
+# 🔷 FORMULARIO PARA ELIMINAR EVENTO POR ID
 # -------------------------------------------------------
-class FormScreen(Screen):
-
-    def __init__(self, editar=False, evento=None):
-        super().__init__()
-        self.editar = editar
-        self.evento = evento
+class EliminarEventoScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield Static(
-            "✍ REGISTRAR EVENTO" if not self.editar else "✏ MODIFICAR EVENTO",
-            id="title"
-        )
+        yield Static("❌ ELIMINAR EVENTO", id="title")
 
-        yield Input(placeholder="Nombre del cliente", id="nombre")
-        yield Input(placeholder="Carnet", id="carnet")
-
-        yield Select(
-            options=[
-                ("cumpleanos", "Cumpleaños"),
-                ("boda", "Boda"),
-                ("graduacion", "Graduación"),
-                ("infantil", "Fiesta infantil"),
-                ("baby", "Baby Shower"),
-                ("corporativo", "Corporativo"),
-                ("otro", "Otro")
-            ],
-            id="tipo"
-        )
-
-        yield Input(placeholder="Monto garantía", id="garantia")
-        yield Input(placeholder="Monto total", id="total")
-        yield Input(placeholder="Fecha YYYY-MM-DD", id="dia")
-        yield Input(placeholder="Hora fin HH:MM", id="hora")
-        yield Checkbox("¿Requiere decoración?", id="decoracion")
+        yield Input(placeholder="Ingrese ID del evento a eliminar", id="event_id")
 
         yield Horizontal(
-            Button("💾 Guardar", id="guardar", variant="success"),
-            Button("⬅ Volver", id="volver", variant="error"),
+            Button("🗑 Eliminar", id="eliminar", variant="error"),
+            Button("⬅ Volver", id="volver", variant="primary"),
             id="botones"
         )
 
         yield Footer()
 
-    def on_mount(self):
-        if self.editar and self.evento:
-            self.query_one("#nombre").value = self.evento.nombre
-            self.query_one("#carnet").value = self.evento.carnet
-            self.query_one("#tipo").value = self.evento.tipo
-            self.query_one("#garantia").value = str(self.evento.monto_garantia)
-            self.query_one("#total").value = str(self.evento.monto_total)
-            self.query_one("#dia").value = str(self.evento.dia)  # como cadena YYYY-MM-DD
-            self.query_one("#hora").value = str(self.evento.hora_fin)  # como cadena HH:MM
-            self.query_one("#decoracion").value = self.evento.decoracion
-
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "volver":
             self.app.pop_screen()
             return
-
-        datos = {
-            "nombre": self.query_one("#nombre").value,
-            "carnet": self.query_one("#carnet").value,
-            "tipo": self.query_one("#tipo").value,
-            "monto_garantia": float(self.query_one("#garantia").value),
-            "monto_total": float(self.query_one("#total").value),
-            "dia": self.query_one("#dia").value,       # enviar como cadena
-            "hora_fin": self.query_one("#hora").value, # enviar como cadena
-            "decoracion": self.query_one("#decoracion").value,
-            "direccion": ""  # para cumplir con la función en database.py
-        }
-
-        if self.editar:
-            modificar_evento(self.evento.id, **datos)
-        else:
-            agregar_evento(**datos)
-
-        self.app.pop_screen()
-
-
-# -------------------------------------------------------
-# 🔷 LISTA DE EVENTOS
-# -------------------------------------------------------
-class ListaEventos(Screen):
-
-    def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
-        yield Static("📋 LISTA DE EVENTOS", id="title")
-        self.tabla = DataTable(id="tabla")
-        yield self.tabla
-        yield Footer()
-
-    def on_mount(self):
-        self.tabla.add_columns(
-            "ID", "Tipo", "Nombre", "Carnet", "Fecha", "Hora", "Decoración"
-        )
-
-        eventos = list(listar_eventos())
-        eventos.sort(key=lambda e: e.dia)
-
-        fechas = {}
-        for e in eventos:
-            fechas.setdefault(e.dia, []).append(e)
-
-        for e in eventos:
-            conflicto = len(fechas[e.dia]) > 1
-            self.tabla.add_row(
-                str(e.id), e.tipo, e.nombre, e.carnet,
-                str(e.dia), str(e.hora_fin),
-                "Sí" if e.decoracion else "No"
-            )
-            if conflicto:
-                fila_index = len(self.tabla.rows) - 1
-                for col_index in range(len(self.tabla.columns)):
-                    self.tabla.get_row(fila_index).cells[col_index].style = "bold red"
-
-    def key_e(self):
-        fila = self.tabla.cursor_row
-        if fila is None:
-            return
-        event_id = int(self.tabla.rows[fila].cells[0].value)
-        evento = next(e for e in listar_eventos() if e.id == event_id)
-        self.app.push_screen(FormScreen(editar=True, evento=evento))
-
-    def key_d(self):
-        fila = self.tabla.cursor_row
-        if fila is None:
-            return
-        event_id = int(self.tabla.rows[fila].cells[0].value)
-        eliminar_evento(event_id)
-        self.app.push_screen(ListaEventos())
+        if event.button.id == "eliminar":
+            event_id_str = self.query_one("#event_id").value
+            if event_id_str.isdigit():
+                event_id = int(event_id_str)
+                eliminar_evento(event_id)
+                self.app.pop_screen()
+            else:
+                # Mensaje simple de error
+                self.query_one("#event_id").placeholder = "ID inválido, ingrese un número"
 
 
 # -------------------------------------------------------
@@ -156,18 +51,13 @@ class ModernApp(App):
     }
     """
 
-    BINDINGS = [
-        ("q", "quit", "Salir"),
-    ]
+    BINDINGS = [("q", "quit", "Salir")]
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield Static("🌟 BIENVENIDO AL SISTEMA DE EVENTOS 🌟", id="title")
+        yield Static("🌟 SISTEMA DE EVENTOS 🌟", id="title")
 
         yield Vertical(
-            Button("➕ Registrar evento", id="add", variant="success"),
-            Button("📋 Ver eventos", id="list", variant="primary"),
-            Button("✏ Modificar evento", id="mod", variant="primary"),
             Button("❌ Eliminar evento", id="del", variant="error"),
             Button("🚪 Salir", id="quitbtn", variant="error"),
             id="menu"
@@ -175,14 +65,8 @@ class ModernApp(App):
         yield Footer()
 
     def on_button_pressed(self, event: Button.Pressed):
-        if event.button.id == "add":
-            self.push_screen(FormScreen())
-        elif event.button.id == "list":
-            self.push_screen(ListaEventos())
-        elif event.button.id == "mod":
-            self.push_screen(ListaEventos())  # seleccionar fila y usar key_e
-        elif event.button.id == "del":
-            self.push_screen(ListaEventos())  # seleccionar fila y usar key_d
+        if event.button.id == "del":
+            self.push_screen(EliminarEventoScreen())
         elif event.button.id == "quitbtn":
             self.exit()
 
