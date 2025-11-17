@@ -26,8 +26,7 @@ class FormScreen(Screen):
 
         yield Input(placeholder="Nombre del cliente", id="nombre")
         yield Input(placeholder="Carnet", id="carnet")
-        yield Input(placeholder="Dirección", id="direccion")
-
+        # Campo de domicilio eliminado
         yield Select(
             options=[
                 ("cumpleanos", "Cumpleaños"),
@@ -59,7 +58,6 @@ class FormScreen(Screen):
         if self.editar and self.evento:
             self.query_one("#nombre").value = self.evento.nombre
             self.query_one("#carnet").value = self.evento.carnet
-            self.query_one("#direccion").value = self.evento.direccion_domicilio
             self.query_one("#tipo").value = self.evento.tipo
             self.query_one("#garantia").value = str(self.evento.monto_garantia)
             self.query_one("#total").value = str(self.evento.monto_total)
@@ -75,7 +73,6 @@ class FormScreen(Screen):
         datos = {
             "nombre": self.query_one("#nombre").value,
             "carnet": self.query_one("#carnet").value,
-            "direccion_domicilio": self.query_one("#direccion").value,
             "tipo": self.query_one("#tipo").value,
             "monto_garantia": float(self.query_one("#garantia").value),
             "monto_total": float(self.query_one("#total").value),
@@ -118,7 +115,6 @@ class ListaEventos(Screen):
 
         for e in eventos:
             conflicto = len(fechas[e.dia]) > 1
-            # En versiones modernas de textual, DataTable no acepta style en add_row
             self.tabla.add_row(
                 str(e.id), e.tipo, e.nombre, e.carnet,
                 str(e.dia), str(e.hora_fin),
@@ -133,7 +129,7 @@ class ListaEventos(Screen):
         fila = self.tabla.cursor_row
         if fila is None:
             return
-        event_id = int(self.tabla.rows[fila].cells[0].value)
+        event_id = int(self.tabla.get_row(fila).get_cell_value(0))
         evento = next(e for e in listar_eventos() if e.id == event_id)
         self.app.push_screen(FormScreen(editar=True, evento=evento))
 
@@ -141,9 +137,9 @@ class ListaEventos(Screen):
         fila = self.tabla.cursor_row
         if fila is None:
             return
-        event_id = int(self.tabla.rows[fila].cells[0].value)
+        event_id = int(self.tabla.get_row(fila).get_cell_value(0))
         eliminar_evento(event_id)
-        self.app.push_screen(ListaEventos())
+        self.tabla.remove_row(fila)
 
 
 # -------------------------------------------------------
@@ -170,7 +166,7 @@ class ModernApp(App):
         yield Vertical(
             Button("➕ Registrar evento", id="add", variant="success"),
             Button("📋 Ver eventos", id="list", variant="primary"),
-            Button("❌ Salir", id="quitbtn", variant="error"),
+            Button("🚪 Salir", id="quitbtn", variant="error"),
             id="menu"
         )
         yield Footer()
@@ -189,4 +185,3 @@ class ModernApp(App):
 # -------------------------------------------------------
 if __name__ == "__main__":
     ModernApp().run()
-
